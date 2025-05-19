@@ -1,9 +1,9 @@
 # Пути к данным
-RAW_DATA_PATH = "data/raw/ratings.parquet"
+RATINGS_DATA_PATH = "data/raw/ratings.parquet"
 MOVIE_METADATA_PATH = "data/raw/movies.parquet"
-PROCESSED_MATRIX_PATH = "data/processed/user_item_matrix.pkl"
-COLLABORATIVE_MODEL_PATH = "data/processed/collaborative_model.pkl"
+COLLABORATIVE_MODEL_PATH = "data/processed/collaborative_model.joblib"
 CONTENT_MODEL_PATH = "data/processed/content_model.pkl"
+HYBRID_MODEL_PATH = "data/processed/hybrid_model.pkl"
 
 # Параметры моделей
 SVD_PARAMS = {

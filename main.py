@@ -1,15 +1,39 @@
-from models.collaborative import CollaborativeModel
 import time
-from config import RAW_DATA_PATH
+import os
+from memory_profiler import memory_usage
+from psutil import Process
+from config import RATINGS_DATA_PATH, MOVIE_METADATA_PATH
 import pandas as pd
+from models.hybrid import HybridModel
+from models.content_based import ContentBasedModel
+from models.collaborative import CollaborativeModel
 
-model = CollaborativeModel()
-
-if model.model is None:
-    ratings_df = pd.read_parquet(RAW_DATA_PATH)
-    model.fit(ratings_df)
-
+model = HybridModel()
+movies = pd.read_parquet(MOVIE_METADATA_PATH)
+ratings = pd.read_parquet(RATINGS_DATA_PATH)
 start = time.time()
-slow = model.predict(1)
-slow_time = time.time() - start
-print(f"Time: {slow_time:.4f} sec\n")
+rec = model.predict(635, top_n=10)
+end = time.time()
+print(f"Время выполнения: {end - start:.2f} секунд")
+
+# content_model = ContentBasedModel()
+# movies = pd.read_parquet(MOVIE_METADATA_PATH)
+# ratings = pd.read_parquet(RATINGS_DATA_PATH)
+# start = time.time()
+# content_recs = dict(content_model.predict(635, top_n=None))
+# end = time.time()
+# print(f"Время выполнения: {end - start:.2f} секунд")
+# start = time.time()
+# content_recs = dict(content_model.predict(635, top_n=None))
+# end = time.time()
+# print(f"Время выполнения: {end - start:.2f} секунд")
+
+# start = time.time()
+# model = CollaborativeModel()
+# print(f"[INFO] Модель загружена. {time.time() - start:.2f} секунд")
+# start = time.time()
+# rec2 = model.predict_fast(635, top_n=10)
+# print(f"Время выполнения: {time.time() - start:.2f} секунд")
+# start = time.time()
+# rec = model.predict(635, top_n=10)
+# print(f"Время выполнения: {time.time() - start:.2f} секунд")

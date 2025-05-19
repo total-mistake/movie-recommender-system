@@ -6,5 +6,5 @@ class BaseModel(ABC):
         pass
 
     @abstractmethod
-    def recommend(self, user_id, top_n=10):
+    def predict(self, user_id, top_n):
         pass

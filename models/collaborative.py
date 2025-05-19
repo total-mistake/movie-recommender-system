@@ -1,7 +1,6 @@
 import os
 import pickle
-import numpy as np
-import pandas as pd
+import time
 from collections import defaultdict
 from .base import BaseModel
 from surprise import SVD, Dataset, Reader
@@ -51,7 +50,7 @@ class CollaborativeModel(BaseModel):
                 "all_movie_ids": self.all_movie_ids,
                 "user_rated_movies": self.user_rated_movies
             }, f)
-
+    
     def load_model(self):
         with open(self.model_path, "rb") as f:
             data = pickle.load(f)
@@ -59,20 +58,63 @@ class CollaborativeModel(BaseModel):
             self.all_movie_ids = data["all_movie_ids"]
             self.user_rated_movies = data["user_rated_movies"]
     
-    def predict(self, user_id):
+    def predict_(self, user_id, top_n=None):
         if self.model is None:
             raise RuntimeError("Модель не загружена и не обучена.")
 
+        start = time.time()
         known_ids = self.user_rated_movies.get(user_id, set())
         candidates = [mid for mid in self.all_movie_ids if mid not in known_ids]
+        print(f"[INFO] Получено {len(candidates)} кандидатов для пользователя {user_id}. {time.time() - start:.2f} секунд")
 
+        start = time.time()
         predictions = [
             (movie_id, self.model.predict(user_id, movie_id).est)
             for movie_id in candidates
         ]
-        return predictions
-
-    def recommend(self, user_id, n=10):
-        predictions = self.predict(user_id)
+        print(f"[INFO] Получено {len(predictions)} предсказаний. {time.time() - start:.2f} секунд")
+        start = time.time()
         predictions.sort(key=lambda x: x[1], reverse=True)
-        return predictions[:n]
+        print(f"[INFO] Сортировка предсказаний заняла {time.time() - start:.2f} секунд")
+        return predictions[:top_n] if top_n else predictions
+    
+    def predict(self, user_id, top_n=None):
+        if self.model is None:
+            raise RuntimeError("Модель не загружена и не обучена.")
+
+        # Получаем внутренние индексы пользователя и фильмов в trainset
+        trainset = self.model.trainset
+        try:
+            uid_inner = trainset.to_inner_uid(user_id)
+        except ValueError:
+            raise ValueError(f"Пользователь {user_id} отсутствует в обучающей выборке")
+
+        known_ids = self.user_rated_movies.get(user_id, set())
+        candidates = [mid for mid in self.all_movie_ids if mid not in known_ids]
+
+        # Преобразуем внешние id фильмов во внутренние
+        candidate_iids = []
+        valid_candidate_ids = []
+        for mid in candidates:
+            try:
+                iid_inner = trainset.to_inner_iid(mid)
+                candidate_iids.append(iid_inner)
+                valid_candidate_ids.append(mid)
+            except ValueError:
+                # Если фильм не в trainset, пропускаем
+                continue
+
+        # Получаем матрицы
+        pu = self.model.pu[uid_inner]           # вектор пользователя (k,)
+        qi = self.model.qi[candidate_iids]      # матрица кандидатов (len x k)
+        bu = self.model.bu[uid_inner]            # смещение пользователя
+        bi = self.model.bi[candidate_iids]       # смещения фильмов
+        global_mean = self.model.trainset.global_mean
+
+        # Вектор предсказаний (numpy)
+        preds = global_mean + bu + bi + qi.dot(pu)
+
+        predictions = list(zip(valid_candidate_ids, preds))
+        predictions.sort(key=lambda x: x[1], reverse=True)
+
+        return predictions[:top_n] if top_n else predictions
