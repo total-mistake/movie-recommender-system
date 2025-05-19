@@ -116,15 +116,11 @@ class ContentBasedModel(BaseModel):
             raise ValueError(f"[ERROR] Пользователь {user_id} не найден в профилях.")
 
         user_vector = self.user_profiles[user_id]
-        start = time.time()
         sims = cosine_similarity(user_vector, self.feature_matrix)[0]
-        print(f"[DEBUG] cosine_similarity занял {time.time() - start:.2f} сек")
 
         known_movie_ids = set(self.watched_movies.get(user_id, []))
-        start = time.time()
         candidates = [(mid, sim) for mid, sim in zip(self.movie_ids, sims) if mid not in known_movie_ids]
         candidates.sort(key=lambda x: x[1], reverse=True)
-        print(f"[DEBUG] Сортировка заняла {time.time() - start:.2f} сек")
 
         return candidates[:top_n] if top_n else candidates
     

@@ -1,7 +1,7 @@
 # Пути к данным
 RATINGS_DATA_PATH = "data/raw/ratings.parquet"
 MOVIE_METADATA_PATH = "data/raw/movies.parquet"
-COLLABORATIVE_MODEL_PATH = "data/processed/collaborative_model.joblib"
+COLLABORATIVE_MODEL_PATH = "data/processed/collaborative_model.pkl"
 CONTENT_MODEL_PATH = "data/processed/content_model.pkl"
 HYBRID_MODEL_PATH = "data/processed/hybrid_model.pkl"
 

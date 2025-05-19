@@ -9,10 +9,8 @@ from models.content_based import ContentBasedModel
 from models.collaborative import CollaborativeModel
 
 model = HybridModel()
-movies = pd.read_parquet(MOVIE_METADATA_PATH)
-ratings = pd.read_parquet(RATINGS_DATA_PATH)
 start = time.time()
-rec = model.predict(635, top_n=10)
+model.content_model.recommend_recent(635, top_n=10)
 end = time.time()
 print(f"Время выполнения: {end - start:.2f} секунд")
 

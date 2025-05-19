@@ -52,7 +52,7 @@ class HybridModel(BaseModel):
         print(f"[INFO] Коллаборативная модель загружена. {time.time() - start:.2f} секунд")
         start = time.time()
         self.content_model = ContentBasedModel()
-        self.content_model.predict__(1)
+        self.content_model.predict(1)
         print(f"[INFO] Контентная модель загружена. {time.time() - start:.2f} секунд")
 
     def predict(self, user_id, top_n=10):
@@ -61,7 +61,7 @@ class HybridModel(BaseModel):
         """
         start = time.time()
         print(f"[INFO] Генерация рекомендаций для пользователя {user_id}...")
-        content_recs = dict(self.content_model.predict__(user_id, top_n=None))
+        content_recs = dict(self.content_model.predict(user_id, top_n=None))
         print(f"[INFO] Получено {len(content_recs)} рекомендаций от контентной модели. {time.time() - start:.2f} секунд")
         start = time.time()
         collab_recs = dict(self.collaborative_model.predict(user_id, top_n=None))
