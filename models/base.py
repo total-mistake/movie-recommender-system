@@ -8,3 +8,11 @@ class BaseModel(ABC):
     @abstractmethod
     def predict(self, user_id, top_n):
         pass
+
+    @abstractmethod
+    def load_model(self):
+        pass
+
+    @abstractmethod
+    def _save_model(self):
+        pass

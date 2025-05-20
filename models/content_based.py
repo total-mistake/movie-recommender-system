@@ -1,7 +1,8 @@
 import os
 import pickle
 import numpy as np
-import time
+import pandas as pd
+from scipy.sparse import vstack
 from sklearn.metrics.pairwise import cosine_similarity
 from config import CONTENT_MODEL_PATH
 from .base import BaseModel
@@ -33,7 +34,6 @@ class ContentBasedModel(BaseModel):
         ratings_df = ratings_df.sort_values(['userId', 'date'])
 
         for user_id, group in ratings_df.groupby('userId'):
-            print(f"[INFO] Обработка пользователя {user_id}...")
             watched_ids = group['movieId'].tolist()  # сохраняет порядок
             self.watched_movies[user_id] = watched_ids
 
@@ -81,33 +81,6 @@ class ContentBasedModel(BaseModel):
             self.watched_movies = data.get('watched_movies', {})
             self.preprocessor = data['preprocessor']
     
-    def predict_(self, user_id):
-        """
-        Предсказывает оценки схожести для всех непросмотренных фильмов пользователя.
-        Возвращает список (movie_id, score).
-        """
-        if self.feature_matrix is None or self.movie_ids is None:
-            raise RuntimeError("Модель не обучена или не загружена.")
-
-        if user_id not in self.user_profiles:
-            raise ValueError(f"[ERROR] Пользователь {user_id} не найден в профилях.")
-
-        # Индексы просмотренных фильмов
-        known_movie_ids = set(
-            mid for mid_idx, mid in enumerate(self.movie_ids)
-            if cosine_similarity(self.user_profiles[user_id], self.feature_matrix[mid_idx])[0][0] > 0.9999
-        )
-
-        # Кандидаты — непросмотренные фильмы
-        candidates = [(idx, mid) for idx, mid in enumerate(self.movie_ids) if mid not in known_movie_ids]
-
-        user_vector = self.user_profiles[user_id]
-        predictions = [
-            (mid, cosine_similarity(user_vector, self.feature_matrix[idx])[0][0])
-            for idx, mid in candidates
-        ]
-        return predictions
-    
     def predict(self, user_id, top_n=None):
         if self.feature_matrix is None or self.movie_ids is None:
             raise RuntimeError("Модель не обучена или не загружена.")
@@ -123,33 +96,6 @@ class ContentBasedModel(BaseModel):
         candidates.sort(key=lambda x: x[1], reverse=True)
 
         return candidates[:top_n] if top_n else candidates
-    
-    # def predict(self, user_id, top_n=None):
-    #     if self.feature_matrix is None or self.movie_ids is None:
-    #         raise RuntimeError("Модель не обучена или не загружена.")
-
-    #     if user_id not in self.user_profiles:
-    #         raise ValueError(f"[ERROR] Пользователь {user_id} не найден в профилях.")
-
-    #     user_vector = self.user_profiles[user_id]
-    #     start = time.time()
-    #     sims = cosine_similarity(user_vector, self.feature_matrix)[0]
-
-    #     start = time.time()
-    #     known_movie_ids = set(self.watched_movies.get(user_id, []))
-    #     mask = np.isin(self.movie_ids, list(known_movie_ids), invert=True)
-    #     filtered_ids = self.movie_ids[mask]
-    #     filtered_sims = sims[mask]
-    #     print(f"[DEBUG] Фильтрация заняла {time.time() - start:.2f} сек")
-    #     start = time.time()
-    #     candidates = np.column_stack((filtered_ids, filtered_sims))  # shape: (n_samples, 2)
-
-    #     # Сортировка по similarity (второй колонке), по убыванию
-    #     sorted_indices = np.argsort(-candidates[:, 1])
-    #     candidates = candidates[sorted_indices]
-    #     print(f"[DEBUG] Сортировка заняла {time.time() - start:.2f} сек")
-
-    #     return candidates[:top_n] if top_n else candidates
     
     def get_similar_movies(self, movie_id, top_n=10):
         """
@@ -201,7 +147,126 @@ class ContentBasedModel(BaseModel):
         candidates.sort(key=lambda x: x[1], reverse=True)
 
         return candidates[:top_n]
+    
+    def add_movie(self, movie_row: pd.DataFrame):
+        """
+        Добавляет новый фильм (одна строка DataFrame) к матрице признаков без переобучения.
+        movie_row должен иметь те же столбцы, что и movies_df из .fit()
+        """
+        if self.preprocessor is None:
+            raise ValueError("Препроцессор не загружен. Нужно вызвать fit() или load_model().")
 
+        if self.feature_matrix is None or self.movie_ids is None:
+            raise ValueError("Модель не обучена. Вызови fit().")
 
+        if len(movie_row) != 1:
+            raise ValueError("Передай DataFrame с ровно одной строкой.")
 
+        # Проверим наличие нужных колонок
+        required_columns = self.preprocessor.feature_names_in_
+        missing_cols = set(required_columns) - set(movie_row.columns)
+        if missing_cols:
+            raise ValueError(f"Отсутствуют обязательные столбцы: {missing_cols}")
 
+        # Трансформация признаков нового фильма
+        new_vector = self.preprocessor.transform(movie_row)
+
+        # Обновим матрицу признаков и movie_ids
+        self.feature_matrix = vstack([self.feature_matrix, new_vector])
+        self.movie_ids = np.append(self.movie_ids, movie_row['movieId'].values[0])
+
+        print(f"[INFO] Добавлен фильм ID {movie_row['movieId'].values[0]}. Обновлена матрица признаков.")
+
+    def remove_movie(self, movie_id):
+        """
+        Удаляет фильм из модели по его movie_id.
+        """
+        if self.movie_ids is None or self.feature_matrix is None:
+            raise RuntimeError("Модель не загружена или не обучена.")
+        
+        if movie_id not in self.movie_ids:
+            raise ValueError(f"[ERROR] Фильм {movie_id} не найден в модели.")
+
+        idx = np.where(self.movie_ids == movie_id)[0][0]
+
+        # Удаляем строку из feature_matrix и id
+        self.feature_matrix = vstack([
+            self.feature_matrix[:idx],
+            self.feature_matrix[idx+1:]
+        ])
+        self.movie_ids = np.delete(self.movie_ids, idx)
+
+        # Удалим этот фильм из просмотренных у всех пользователей
+        for uid in self.watched_movies:
+            self.watched_movies[uid] = [mid for mid in self.watched_movies[uid] if mid != movie_id]
+
+    def update_movie(self, movie_df):
+        """
+        Обновляет признаки фильма по movie_id.
+        movie_df — DataFrame с одной строкой (аналогичный строке из movies_df).
+        """
+        if self.movie_ids is None or self.feature_matrix is None:
+            raise RuntimeError("Модель не загружена или не обучена.")
+
+        if len(movie_df) != 1:
+            raise ValueError("[ERROR] Ожидается DataFrame с одной строкой.")
+
+        movie_id = movie_df.iloc[0]['movieId']
+        if movie_id not in self.movie_ids:
+            raise ValueError(f"[ERROR] Фильм {movie_id} не найден в модели.")
+
+        idx = np.where(self.movie_ids == movie_id)[0][0]
+
+        # Преобразуем фильм в вектор
+        new_features = self.preprocessor.transform(movie_df)
+
+        # Обновим строку в матрице признаков
+        self.feature_matrix[idx] = new_features
+
+    def update_user_profile(self, user_id, new_movie_id, new_rating):
+        """
+        Обновляет профиль пользователя при появлении новой оценки.
+
+        new_movie_id — идентификатор фильма
+        new_rating — оценка пользователя (например, от 1 до 5)
+        """
+        if self.user_profiles is None or self.feature_matrix is None:
+            raise RuntimeError("Модель не обучена или не загружена.")
+
+        if user_id not in self.user_profiles:
+            self.user_profiles[user_id] = np.zeros(self.feature_matrix.shape[1])
+
+        # Найдём индекс фильма
+        try:
+            idx = np.where(self.movie_ids == new_movie_id)[0][0]
+        except IndexError:
+            raise ValueError(f"Фильм {new_movie_id} не найден в модели.")
+
+        movie_vec = self.feature_matrix[idx]
+
+        # Обновим профиль пользователя — можно взять простое средневзвешенное обновление
+        # (например, сглаживание предыдущего профиля с новым фильмом, взвешенное по рейтингу)
+        old_profile = self.user_profiles[user_id]
+        alpha = 0.1  # скорость адаптации (можно настраивать)
+
+        new_profile = (1 - alpha) * old_profile + alpha * new_rating * movie_vec
+        self.user_profiles[user_id] = new_profile
+
+    def add_new_user(self, user_id, favorite_genres: list[str]):
+        """
+        Создает профиль пользователя на основе любимых жанров.
+        Все остальные признаки задаются пустыми/нулевыми.
+        """
+        dummy_movie = {
+            'plot': '',
+            'genres': ','.join(favorite_genres),
+            'directors': '',
+            'writers': '',
+            'actors': '',
+            'countries': '',
+            'start_year': 0,
+            'type': ''
+        }
+        dummy_df = pd.DataFrame([dummy_movie])
+        user_vector = self.preprocessor.transform(dummy_df)
+        self.user_profiles[user_id] = user_vector[0]

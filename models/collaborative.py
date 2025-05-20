@@ -1,6 +1,5 @@
 import os
 import pickle
-import time
 from collections import defaultdict
 from .base import BaseModel
 from surprise import SVD, Dataset, Reader
@@ -26,7 +25,7 @@ class CollaborativeModel(BaseModel):
         data = Dataset.load_from_df(ratings_df[['userId', 'movieId', 'rating']], reader)
         self.trainset = data.build_full_trainset()
 
-        self.model = SVD(**SVD_PARAMS, random_state=9)
+        self.model = SVD(**SVD_PARAMS)
         self.model.fit(self.trainset)
 
         # Собираем все уникальные фильмы и просмотренные пользователями
@@ -35,10 +34,6 @@ class CollaborativeModel(BaseModel):
         self.user_rated_movies = defaultdict(set)
         for _, row in ratings_df.iterrows():
             self.user_rated_movies[int(row.userId)].add(int(row.movieId))
-
-        # Сохраняем ratings_df отдельно для восстановления trainset
-        ratings_path = self.model_path.replace(".pkl", "_ratings.parquet")
-        ratings_df.to_parquet(ratings_path, index=False)
 
         self._save_model()
 
@@ -57,26 +52,6 @@ class CollaborativeModel(BaseModel):
             self.model = data["model"]
             self.all_movie_ids = data["all_movie_ids"]
             self.user_rated_movies = data["user_rated_movies"]
-    
-    def predict_(self, user_id, top_n=None):
-        if self.model is None:
-            raise RuntimeError("Модель не загружена и не обучена.")
-
-        start = time.time()
-        known_ids = self.user_rated_movies.get(user_id, set())
-        candidates = [mid for mid in self.all_movie_ids if mid not in known_ids]
-        print(f"[INFO] Получено {len(candidates)} кандидатов для пользователя {user_id}. {time.time() - start:.2f} секунд")
-
-        start = time.time()
-        predictions = [
-            (movie_id, self.model.predict(user_id, movie_id).est)
-            for movie_id in candidates
-        ]
-        print(f"[INFO] Получено {len(predictions)} предсказаний. {time.time() - start:.2f} секунд")
-        start = time.time()
-        predictions.sort(key=lambda x: x[1], reverse=True)
-        print(f"[INFO] Сортировка предсказаний заняла {time.time() - start:.2f} секунд")
-        return predictions[:top_n] if top_n else predictions
     
     def predict(self, user_id, top_n=None):
         if self.model is None:

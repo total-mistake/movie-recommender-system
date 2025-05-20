@@ -38,22 +38,18 @@ class HybridModel(BaseModel):
             pickle.dump({
                 "alpha": self.alpha
             }, f)
+        self.collaborative_model._save_model()
+        self.content_model._save_model()
 
     def load_model(self):
-        start = time.time()
         if os.path.exists(self.model_path):
             with open(self.model_path, "rb") as f:
                 data = pickle.load(f)
                 self.alpha = data["alpha"]
-        print(f"[INFO] Модель загружена из {self.model_path}. {time.time() - start:.2f} секунд")
         # Также загружаем внутренние модели
-        start = time.time()
         self.collaborative_model = CollaborativeModel()
-        print(f"[INFO] Коллаборативная модель загружена. {time.time() - start:.2f} секунд")
-        start = time.time()
         self.content_model = ContentBasedModel()
         self.content_model.predict(1)
-        print(f"[INFO] Контентная модель загружена. {time.time() - start:.2f} секунд")
 
     def predict(self, user_id, top_n=10):
         """
