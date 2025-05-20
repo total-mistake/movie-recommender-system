@@ -148,10 +148,10 @@ class ContentBasedModel(BaseModel):
 
         return candidates[:top_n]
     
-    def add_movie(self, movie_row: pd.DataFrame):
+    def add_movie(self, movie_dict: dict):
         """
-        Добавляет новый фильм (одна строка DataFrame) к матрице признаков без переобучения.
-        movie_row должен иметь те же столбцы, что и movies_df из .fit()
+        Добавляет новый фильм к матрице признаков без переобучения.
+        movie_dict должен содержать все необходимые поля, как в movies_df.
         """
         if self.preprocessor is None:
             raise ValueError("Препроцессор не загружен. Нужно вызвать fit() или load_model().")
@@ -159,15 +159,18 @@ class ContentBasedModel(BaseModel):
         if self.feature_matrix is None or self.movie_ids is None:
             raise ValueError("Модель не обучена. Вызови fit().")
 
-        if len(movie_row) != 1:
-            raise ValueError("Передай DataFrame с ровно одной строкой.")
+        # Преобразуем словарь в DataFrame с одной строкой
+        movie_row = pd.DataFrame([movie_dict])
 
-        # Проверим наличие нужных колонок
-        required_columns = self.preprocessor.feature_names_in_
+        # Только реально используемые признаки:
+        required_columns = [tr[2] for tr in self.preprocessor.transformers]
         missing_cols = set(required_columns) - set(movie_row.columns)
         if missing_cols:
             raise ValueError(f"Отсутствуют обязательные столбцы: {missing_cols}")
 
+        if 'start_year' in movie_row.columns:
+            movie_row['start_year'] = movie_row['start_year'].astype(float)
+            
         # Трансформация признаков нового фильма
         new_vector = self.preprocessor.transform(movie_row)
 
@@ -200,29 +203,37 @@ class ContentBasedModel(BaseModel):
         for uid in self.watched_movies:
             self.watched_movies[uid] = [mid for mid in self.watched_movies[uid] if mid != movie_id]
 
-    def update_movie(self, movie_df):
+    def update_movie(self, movie_dict: dict):
         """
         Обновляет признаки фильма по movie_id.
-        movie_df — DataFrame с одной строкой (аналогичный строке из movies_df).
+        movie_dict — словарь с ключами, как в movies_df.
         """
         if self.movie_ids is None or self.feature_matrix is None:
             raise RuntimeError("Модель не загружена или не обучена.")
 
-        if len(movie_df) != 1:
-            raise ValueError("[ERROR] Ожидается DataFrame с одной строкой.")
+        movie_df = pd.DataFrame([movie_dict])
+        movie_id = movie_dict.get('movieId')
 
-        movie_id = movie_df.iloc[0]['movieId']
+        if movie_id is None:
+            raise ValueError("[ERROR] В словаре отсутствует ключ 'movieId'.")
+
         if movie_id not in self.movie_ids:
             raise ValueError(f"[ERROR] Фильм {movie_id} не найден в модели.")
+        
+        if 'start_year' in movie_df.columns:
+            movie_df['start_year'] = movie_df['start_year'].astype(float)
 
         idx = np.where(self.movie_ids == movie_id)[0][0]
 
-        # Преобразуем фильм в вектор
+        # Преобразуем обновлённые признаки в вектор
         new_features = self.preprocessor.transform(movie_df)
 
         # Обновим строку в матрице признаков
         self.feature_matrix[idx] = new_features
 
+        print(f"[INFO] Обновлены признаки фильма ID {movie_id}.")
+
+    
     def update_user_profile(self, user_id, new_movie_id, new_rating):
         """
         Обновляет профиль пользователя при появлении новой оценки.

@@ -1,8 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes import recommendations, health
+from api.routes import recommendations, health, admin
 from api.services.recommender import RecommenderService
 from api.dependencies import set_recommender_service
+from api.auth import get_admin_token
 import logging
 
 # Настройка логирования
@@ -56,6 +57,16 @@ async def check_ready_middleware(request, call_next):
 # Подключаем роуты
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(recommendations.router, prefix="/api", tags=["recommendations"])
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+
+# Роут для получения токена администратора
+@app.post("/api/admin/token", tags=["admin"])
+async def get_token():
+    """
+    Получение JWT токена для администратора
+    Требует валидный API ключ в заголовке X-API-Key
+    """
+    return {"token": get_admin_token()}
 
 if __name__ == "__main__":
     import uvicorn

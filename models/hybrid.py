@@ -17,19 +17,10 @@ class HybridModel(BaseModel):
 
     def fit(self, movies_df, ratings_df):
         """
-        Обучает недообученные модели. Если модель уже обучена — пропускает обучение.
+        Обучает внутренние модели.
         """
-        # Проверка, обучена ли контентная модель
-        if not self.content_model.user_profiles:
-            print("[INFO] Контентная модель не обучена. Запуск обучения...")
-            self.content_model.fit(movies_df, ratings_df)
-
-        # Проверка, обучена ли коллаборативная модель
-        if self.collaborative_model.model is None:
-            print("[INFO] Коллаборативная модель не обучена. Запуск обучения...")
-            self.collaborative_model.fit(ratings_df)
-
-        # Гибридной модели отдельное обучение не требуется — только весовая настройка
+        self.content_model.fit(movies_df, ratings_df)
+        self.collaborative_model.fit(ratings_df)
         self._save_model()
 
     def _save_model(self):
