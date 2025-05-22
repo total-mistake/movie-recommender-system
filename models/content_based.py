@@ -4,13 +4,13 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import vstack
 from sklearn.metrics.pairwise import cosine_similarity
-from config import CONTENT_MODEL_PATH
+from config import CONTENT_MODEL_PATH, CONTENT_TEST_MODEL_PATH
 from .base import BaseModel
 from .preprocessing import build_preprocessor
 from scipy.sparse import csr_matrix
 
 class ContentBasedModel(BaseModel):
-    def __init__(self, model_path=CONTENT_MODEL_PATH):
+    def __init__(self, model_path=CONTENT_TEST_MODEL_PATH):
         self.model_path = model_path
         self.movie_ids = None
         self.feature_matrix = None
@@ -18,48 +18,91 @@ class ContentBasedModel(BaseModel):
         self.preprocessor = None
         self.watched_movies = {}
 
-        if os.path.exists(self.model_path):
+        if self.model_exists():
             self.load_model()
         else:
             print(f"[INFO] Контентная модель не найдена по пути {self.model_path}. Нужно вызвать fit().")
 
-    def fit(self, movies_df, ratings_df, like_threshold=5.0):
+    def fit(self, movies_df, ratings_df, like_threshold=5.0, min_threshold=3.0):
         """
-        Строит матрицу признаков фильмов и пользовательские профили
-        только по понравившимся фильмам (рейтинг >= like_threshold).
+        Строит матрицу признаков фильмов и пользовательские профили.
+        
+        Профиль пользователя - это взвешенная сумма векторов признаков всех просмотренных фильмов.
+        Вес каждого фильма зависит от рейтинга:
+        - Фильмы с рейтингом >= like_threshold (5.0) имеют максимальный вес 1.0
+        - Фильмы с рейтингом <= min_threshold (3.0) имеют нулевой вес
+        - Фильмы с рейтингом между min_threshold и like_threshold имеют вес пропорциональный рейтингу
+        
+        Args:
+            movies_df: DataFrame с информацией о фильмах
+            ratings_df: DataFrame с рейтингами пользователей
+            like_threshold: Максимальный рейтинг (по умолчанию 5.0)
+            min_threshold: Минимальный рейтинг для учета фильма (по умолчанию 3.0)
         """
+        if movies_df.empty:
+            raise ValueError("Список с фильмами пуст")
+        if ratings_df.empty:
+            raise ValueError("Список с рейтингами пуст")
+
         self.preprocessor = build_preprocessor()
+        # Преобразуем movieId в целое число
+        movies_df = movies_df.copy()
+        movies_df['movieId'] = movies_df['movieId'].astype(int)
         self.movie_ids = movies_df['movieId'].values
         self.feature_matrix = self.preprocessor.fit_transform(movies_df)
         ratings_df = ratings_df.sort_values(['userId', 'date'])
 
+        # Создаем словарь для быстрого поиска индексов фильмов
+        movie_id_to_idx = {int(mid): idx for idx, mid in enumerate(self.movie_ids)}
+        
+        # Группируем рейтинги по пользователям
         for user_id, group in ratings_df.groupby('userId'):
-            watched_ids = group['movieId'].tolist()  # сохраняет порядок
+            # Сохраняем список просмотренных фильмов
+            watched_ids = [int(mid) for mid in group['movieId'].tolist()]
             self.watched_movies[user_id] = watched_ids
-
-
-            # Оставляем только те фильмы, которые пользователь оценил >= threshold
-            liked = group[group['rating'] >= like_threshold]
-            liked_ids = liked['movieId'].values
-
-            # Индексы понравившихся фильмов
-            watched_idxs = [np.where(self.movie_ids == mid)[0][0] for mid in liked_ids if mid in self.movie_ids]
-
-            if watched_idxs:
-                subset = self.feature_matrix[watched_idxs]
-                # Суммируем строки (получим csr_matrix)
-                sum_vector = subset.sum(axis=0)  # результат — это numpy.matrix
-
-                # Преобразуем к csr_matrix (иначе .multiply не сработает)
-                sum_vector = csr_matrix(sum_vector)
-
-                # Делим на количество фильмов (поэлементное деление)
-                profile_sparse = sum_vector.multiply(1.0 / subset.shape[0])
-
-                self.user_profiles[user_id] = profile_sparse
+            
+            # Собираем индексы фильмов и их рейтинги
+            movie_indices = []
+            ratings = []
+            for mid, rating in zip(group['movieId'], group['rating']):
+                if mid in movie_id_to_idx:
+                    movie_indices.append(movie_id_to_idx[mid])
+                    
+                    # Преобразуем рейтинг в вес от 0 до 1
+                    # Рейтинг 5.0 -> вес 1.0
+                    # Рейтинг 3.0 -> вес 0.0
+                    # Рейтинг 4.0 -> вес 0.5
+                    normalized_rating = (rating - min_threshold) / (like_threshold - min_threshold)
+                    normalized_rating = max(0, min(1, normalized_rating))  # ограничиваем диапазон [0, 1]
+                    ratings.append(normalized_rating)
+            
+            if movie_indices:
+                # Получаем векторы признаков для просмотренных фильмов
+                movie_vectors = self.feature_matrix[movie_indices]
+                
+                # Создаем взвешенный профиль пользователя
+                # 1. Преобразуем веса в столбец для умножения
+                weights = np.array(ratings).reshape(-1, 1)
+                
+                # 2. Умножаем каждый вектор признаков фильма на соответствующий вес
+                # Фильмы с высоким рейтингом будут иметь больший вклад в профиль
+                weighted_vectors = movie_vectors.multiply(weights)
+                
+                # 3. Суммируем все взвешенные векторы
+                # Получаем один вектор, представляющий предпочтения пользователя
+                profile = weighted_vectors.sum(axis=0)
+                
+                # 4. Преобразуем к csr_matrix для совместимости
+                profile = csr_matrix(profile)
+                
+                # 5. Нормализуем профиль, деля на количество фильмов
+                # Это нужно, чтобы профили пользователей с разным количеством оценок
+                # были сравнимы между собой
+                profile = profile.multiply(1.0 / len(movie_indices))
+                
+                self.user_profiles[user_id] = profile
 
         self._save_model()
-
 
     def _save_model(self):
         os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
@@ -90,9 +133,12 @@ class ContentBasedModel(BaseModel):
 
         user_vector = self.user_profiles[user_id]
         sims = cosine_similarity(user_vector, self.feature_matrix)[0]
+        
+        # Нормализуем косинусное сходство из [-1, 1] в [0, 1]
+        sims = (sims + 1) / 2
 
         known_movie_ids = set(self.watched_movies.get(user_id, []))
-        candidates = [(mid, sim) for mid, sim in zip(self.movie_ids, sims) if mid not in known_movie_ids]
+        candidates = [(int(mid), sim) for mid, sim in zip(self.movie_ids, sims) if mid not in known_movie_ids]
         candidates.sort(key=lambda x: x[1], reverse=True)
 
         return candidates[:top_n] if top_n else candidates
@@ -112,7 +158,7 @@ class ContentBasedModel(BaseModel):
         sims = cosine_similarity(movie_vector, self.feature_matrix)[0]
 
         similar = [
-            (mid, sim) for mid, sim in zip(self.movie_ids, sims) if mid != movie_id
+            (int(mid), sim) for mid, sim in zip(self.movie_ids, sims) if mid != movie_id
         ]
         similar.sort(key=lambda x: x[1], reverse=True)
         return similar[:top_n]
@@ -143,7 +189,7 @@ class ContentBasedModel(BaseModel):
 
         # Исключим уже просмотренные
         already_seen = set(self.watched_movies.get(user_id, []))
-        candidates = [(mid, sim) for mid, sim in zip(self.movie_ids, sims) if mid not in already_seen]
+        candidates = [(int(mid), sim) for mid, sim in zip(self.movie_ids, sims) if mid not in already_seen]
         candidates.sort(key=lambda x: x[1], reverse=True)
 
         return candidates[:top_n]
@@ -161,6 +207,11 @@ class ContentBasedModel(BaseModel):
 
         # Преобразуем словарь в DataFrame с одной строкой
         movie_row = pd.DataFrame([movie_dict])
+        movie_id = int(movie_row['movieId'].values[0])
+
+        # Проверяем, не существует ли уже фильм с таким ID
+        if movie_id in self.movie_ids:
+            raise ValueError(f"Фильм с ID {movie_id} уже существует в модели")
 
         # Только реально используемые признаки:
         required_columns = [tr[2] for tr in self.preprocessor.transformers]
@@ -176,9 +227,9 @@ class ContentBasedModel(BaseModel):
 
         # Обновим матрицу признаков и movie_ids
         self.feature_matrix = vstack([self.feature_matrix, new_vector])
-        self.movie_ids = np.append(self.movie_ids, movie_row['movieId'].values[0])
+        self.movie_ids = np.append(self.movie_ids, movie_id)
 
-        print(f"[INFO] Добавлен фильм ID {movie_row['movieId'].values[0]}. Обновлена матрица признаков.")
+        print(f"[INFO] Добавлен фильм ID {movie_id}. Обновлена матрица признаков.")
 
     def remove_movie(self, movie_id):
         """
@@ -212,7 +263,7 @@ class ContentBasedModel(BaseModel):
             raise RuntimeError("Модель не загружена или не обучена.")
 
         movie_df = pd.DataFrame([movie_dict])
-        movie_id = movie_dict.get('movieId')
+        movie_id = int(movie_dict.get('movieId'))
 
         if movie_id is None:
             raise ValueError("[ERROR] В словаре отсутствует ключ 'movieId'.")

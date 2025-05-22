@@ -4,6 +4,9 @@ MOVIE_METADATA_PATH = "data/raw/movies.parquet"
 COLLABORATIVE_MODEL_PATH = "data/processed/collaborative_model.pkl"
 CONTENT_MODEL_PATH = "data/processed/content_model.pkl"
 HYBRID_MODEL_PATH = "data/processed/hybrid_model.pkl"
+COLLABORATIVE_TEST_MODEL_PATH = "data/processed/collaborative_test_model.pkl"
+CONTENT_TEST_MODEL_PATH = "data/processed/content_test_model.pkl"
+HYBRID_TEST_MODEL_PATH = "data/processed/hybrid_test_model.pkl"
 
 # Параметры моделей
 SVD_PARAMS = {

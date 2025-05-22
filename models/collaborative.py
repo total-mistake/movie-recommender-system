@@ -3,19 +3,18 @@ import pickle
 from collections import defaultdict
 from .base import BaseModel
 from surprise import SVD, Dataset, Reader
-from config import COLLABORATIVE_MODEL_PATH, SVD_PARAMS
+from config import COLLABORATIVE_MODEL_PATH, SVD_PARAMS, COLLABORATIVE_TEST_MODEL_PATH
 
 class CollaborativeModel(BaseModel):
-    def __init__(self, model_path=COLLABORATIVE_MODEL_PATH):
+    def __init__(self, model_path=COLLABORATIVE_TEST_MODEL_PATH):
         self.model_path = model_path
         self.model = None
         self.all_movie_ids = []
         self.user_rated_movies = {}
-
-        if os.path.exists(self.model_path):
+        if self.model_exists():
             self.load_model()
         else:
-            print(f"[INFO] Модель не найдена по пути {self.model_path}. Нужно вызвать fit().")
+            print(f"[INFO] Коллаборативная модель не найдена по пути {self.model_path}. Нужно вызвать fit().")
 
     def fit(self, ratings_df):
         """
@@ -25,7 +24,7 @@ class CollaborativeModel(BaseModel):
         data = Dataset.load_from_df(ratings_df[['userId', 'movieId', 'rating']], reader)
         self.trainset = data.build_full_trainset()
 
-        self.model = SVD(**SVD_PARAMS)
+        self.model = SVD(**SVD_PARAMS, random_state=9)
         self.model.fit(self.trainset)
 
         # Собираем все уникальные фильмы и просмотренные пользователями

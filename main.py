@@ -9,23 +9,6 @@ from models.content_based import ContentBasedModel
 from models.collaborative import CollaborativeModel
 
 
-model = HybridModel()
-movie = {
-    "movieId": 292758,
-    "title": "Final Destination: Bloodlines",
-    "plot": "Plagued by a recurring violent nightmare, a college student returns home to find the one person who can break the cycle and save her family from the horrific fate that inevitably awaits them.",
-    "genres": "Horror",
-    "directors": "Zach LipovskyAdam, B. Stein",
-    "writers": "Guy Busick, Lori Evans Taylor, Jon Watts, Guy Busick, Lori Evans Taylor",
-    "actors": "Kaitlyn Santa Juana, Stefani Reyes, Teo Briones, Teo Briones, Charlie Reyes",
-    "countries": "United States",
-    "start_year": 2025,
-    "type": "movie"
-}
-model.content_model.add_movie(movie)
-print(model.content_model.get_similar_movies(292758, top_n=10))
-
-
 # start = time.time()
 # model.content_model.recommend_recent(635, top_n=10)
 # end = time.time()

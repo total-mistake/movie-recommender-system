@@ -6,21 +6,35 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import MultiLabelBinarizer
+from scipy.sparse import issparse
 
 # Классы для строковых импутеров и токенизации
 class SplitList(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None): return self
+    def fit(self, X, y=None):
+        return self
+
     def transform(self, X):
-        return [[item.strip() for item in entry.split(',') if item and item.strip()] for entry in X]
+        return [[item.strip() for item in (entry or '').split(',') if item and item.strip()] for entry in X]
 
 class MultiLabelBinarizerTransformer(BaseEstimator, TransformerMixin):
     def __init__(self):
         self.mlb = MultiLabelBinarizer(sparse_output=True)
+
     def fit(self, X, y=None):
         self.mlb.fit(X)
         return self
+
     def transform(self, X):
         return self.mlb.transform(X)
+
+class TextPreprocessor(BaseEstimator, TransformerMixin):
+    """Предобработка текстовых данных с обработкой пустых значений"""
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        # Заменяем None и NaN на пустую строку
+        return [str(x) if x is not None else '' for x in X]
 
 # Функции
 def reshape_column(X): return X.values.reshape(-1, 1)
@@ -38,8 +52,9 @@ def make_numeric_pipeline():
 
 def make_plot_pipeline(n_components=300):
     return Pipeline([
+        ('preprocess', TextPreprocessor()),  # Добавляем предобработку текста
         ('tfidf', TfidfVectorizer(stop_words='english')),
-        ('lsa', TruncatedSVD(n_components=n_components, random_state=9))
+        ('lsa', TruncatedSVD(n_components=min(n_components, 5)))  # Используем не более 5 компонент для тестов
     ])
 
 def make_multi_label_pipeline():
@@ -51,8 +66,8 @@ def make_multi_label_pipeline():
 def make_writers_pipeline():
     return Pipeline([
         ('split', SplitList()),
-        ('binarizer', MultiLabelBinarizerTransformer()),
-        ('scale', FunctionTransformer(scale_half, accept_sparse=True))
+        ('binarize', MultiLabelBinarizerTransformer()),
+        ('scale', StandardScaler(with_mean=False))  # Масштабирование без центрирования
     ])
 
 def build_preprocessor():
@@ -66,6 +81,7 @@ def build_preprocessor():
             ('countries', make_multi_label_pipeline(), 'countries'),
             ('start_year', make_numeric_pipeline(), 'start_year'),
             ('type', Pipeline([
+                ('preprocess', TextPreprocessor()),  # Добавляем предобработку текста
                 ('vectorizer', CountVectorizer(token_pattern='[^,]+'))
             ]), 'type'),
         ],

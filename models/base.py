@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import os
 
 class BaseModel(ABC):
     @abstractmethod
@@ -16,3 +17,7 @@ class BaseModel(ABC):
     @abstractmethod
     def _save_model(self):
         pass
+
+    def model_exists(self):
+        """Проверяет существование сохраненной модели"""
+        return os.path.exists(self.model_path)
