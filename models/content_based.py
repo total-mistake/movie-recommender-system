@@ -10,7 +10,7 @@ from .preprocessing import build_preprocessor
 from scipy.sparse import csr_matrix
 
 class ContentBasedModel(BaseModel):
-    def __init__(self, model_path=CONTENT_TEST_MODEL_PATH):
+    def __init__(self, model_path=CONTENT_MODEL_PATH):
         self.model_path = model_path
         self.movie_ids = None
         self.feature_matrix = None

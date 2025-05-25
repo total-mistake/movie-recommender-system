@@ -6,7 +6,7 @@ from .content_based import ContentBasedModel
 from .collaborative import CollaborativeModel
 
 class HybridModel(BaseModel):
-    def __init__(self, alpha=0.1):
+    def __init__(self, alpha=0.6):
         self.alpha = alpha  # вес для контентной модели (1 - alpha — для коллаборативной)
         # Инициализируем внутренние модели
         self.content_model = ContentBasedModel()

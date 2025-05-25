@@ -12,6 +12,9 @@ from models.collaborative import CollaborativeModel
 from models.hybrid import HybridModel
 from test_evaluation import evaluate_model
 
+# Константы для оценки моделей
+N_VALUES = [10, 50, 100]  # Значения n для метрик precision@n, recall@n, ndcg@n
+
 def load_data():
     """
     Загружает данные и разделяет их на обучающую и тестовую выборки.
@@ -21,8 +24,8 @@ def load_data():
     print("Загрузка данных...")
     
     # Загружаем данные
-    movies_df = pd.read_parquet('data/raw/movies_test.parquet')
-    ratings_df = pd.read_parquet('data/raw/ratings_test.parquet')
+    movies_df = pd.read_parquet('data/raw/movies_small.parquet')
+    ratings_df = pd.read_parquet('data/raw/ratings_small.parquet')
     
     # Сортируем рейтинги по времени для каждого пользователя
     ratings_df = ratings_df.sort_values(['userId', 'date'])
@@ -64,48 +67,58 @@ def train_and_evaluate_models(movies_df, train_ratings, test_ratings):
     """
     Обучает и оценивает все модели рекомендаций.
     """
-    models = {
-        'Content-Based': ContentBasedModel(),
-        'Collaborative': CollaborativeModel(),
-        'Hybrid-0.2': HybridModel(alpha=0.2),
-        'Hybrid-0.4': HybridModel(alpha=0.4),
-        'Hybrid-0.6': HybridModel(alpha=0.6),
-        'Hybrid-0.8': HybridModel(alpha=0.8)
-    }
     
     results = {}
     
-    for model_name, model in models.items():
+    # Сначала обучаем базовые модели
+    print("\nОценка модели: Content-Based")
+    print("-" * 50)
+    content_model = ContentBasedModel()
+    content_model.fit(movies_df, train_ratings)
+    content_results = evaluate_model(
+        model=content_model,
+        test_ratings=test_ratings,
+        n_values=N_VALUES
+    )
+    results['Content-Based'] = content_results
+    
+    print("\nОценка модели: Collaborative")
+    print("-" * 50)
+    collab_model = CollaborativeModel()
+    collab_model.fit(train_ratings)
+    collab_results = evaluate_model(
+        model=collab_model,
+        test_ratings=test_ratings,
+        n_values=N_VALUES
+    )
+    results['Collaborative'] = collab_results
+    
+    # Теперь создаем и оцениваем гибридные модели
+    hybrid_alphas = [0.2, 0.4, 0.6, 0.8]
+    for alpha in hybrid_alphas:
+        model_name = f'Hybrid-{alpha}'
         print(f"\nОценка модели: {model_name}")
         print("-" * 50)
         
-        # Обучаем модель
-        print("Обучение модели...")
         try:
-            if model_name == 'Collaborative':
-                model.fit(train_ratings)
-            elif model_name == 'Content-Based':
-                model.fit(movies_df, train_ratings)
-            
-            # Оцениваем модель
-            print("Оценка качества рекомендаций...")
-            model_results = evaluate_model(
-                model=model,
+            hybrid_model = HybridModel(alpha=alpha)
+            # Гибридная модель использует уже обученные базовые модели
+            hybrid_results = evaluate_model(
+                model=hybrid_model,
                 test_ratings=test_ratings,
-                n_values=[10]
+                n_values=N_VALUES
             )
-            
-            results[model_name] = model_results
+            results[model_name] = hybrid_results
             
             # Выводим результаты
             print("\nРезультаты:")
-            for metric, scores in model_results.items():
+            for metric, scores in hybrid_results.items():
                 print(f"\n{metric.upper()}:")
                 for n, score in scores.items():
                     print(f"@{n}: {score:.4f}")
                     
         except Exception as e:
-            print(f"Ошибка при обучении/оценке модели {model_name}: {str(e)}")
+            print(f"Ошибка при оценке модели {model_name}: {str(e)}")
             continue
     
     return results
@@ -159,11 +172,11 @@ def main():
     start_time = time.time()
     
     # # Загружаем данные
-    # movies_df = pd.read_parquet('data/raw/movies.parquet')
-    # ratings_df = pd.read_parquet('data/raw/ratings.parquet')
+    # movies_df = pd.read_parquet('data/raw/movies_test.parquet')
+    # ratings_df = pd.read_parquet('data/raw/ratings_test.parquet')
     
     # # Уменьшаем размер датасета (удаляем 90% пользователей)
-    # ratings_df, movies_df = reduce_dataset_size(ratings_df, movies_df, user_fraction=0.90)
+    # ratings_df, movies_df = reduce_dataset_size(ratings_df, movies_df, user_fraction=0.9)
 
     # ratings_df.to_parquet('data/raw/ratings_small.parquet')
     # movies_df.to_parquet('data/raw/movies_small.parquet')

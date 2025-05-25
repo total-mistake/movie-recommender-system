@@ -6,7 +6,7 @@ from surprise import SVD, Dataset, Reader
 from config import COLLABORATIVE_MODEL_PATH, SVD_PARAMS, COLLABORATIVE_TEST_MODEL_PATH
 
 class CollaborativeModel(BaseModel):
-    def __init__(self, model_path=COLLABORATIVE_TEST_MODEL_PATH):
+    def __init__(self, model_path=COLLABORATIVE_MODEL_PATH):
         self.model_path = model_path
         self.model = None
         self.all_movie_ids = []

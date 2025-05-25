@@ -25,21 +25,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Флаг готовности сервера
-is_ready = False
+# Инициализация состояния приложения
+app.state.is_ready = False
 
 @app.on_event("startup")
 async def startup_event():
     """
     Инициализация модели при запуске сервера
     """
-    global is_ready
     try:
         logger.info("Загрузка модели рекомендаций...")
         # Инициализация сервиса рекомендаций
         service = RecommenderService()
         set_recommender_service(service)
-        is_ready = True
+        app.state.is_ready = True
         logger.info("Модель успешно загружена")
     except Exception as e:
         logger.error(f"Ошибка при загрузке модели: {str(e)}")
@@ -50,7 +49,7 @@ async def check_ready_middleware(request, call_next):
     """
     Middleware для проверки готовности сервера
     """
-    if not is_ready and request.url.path != "/api/health":
+    if not app.state.is_ready and request.url.path != "/api/health":
         raise HTTPException(status_code=503, detail="Сервер не готов к обработке запросов")
     return await call_next(request)
 
