@@ -1,0 +1,80 @@
+.card {
+    border: solid;
+    border-color: var(--dl-color-danger-300);
+    border-width: 1px;
+    gap:1em;
+    max-width: 500px;
+}
+.top{
+    display: flex;
+    flex-direction: row;
+    gap: 2em;
+    width: 100%;
+}
+.container2{
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    width: 100%;
+}
+.date{
+    font-weight: 300;
+    font-size: 0.7em;
+}
+
+
+.container3{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    align-items: center;
+}
+.avatar {
+    gap: var(--dl-space-space-unit);
+    display: flex;
+    align-self: flex-start;
+    align-items: center;
+    flex-direction: row;
+    justify-content: center;
+}
+.image {
+    width: var(--dl-size-size-small);
+    height: var(--dl-size-size-small);
+    object-fit: cover;
+    border-radius: var(--dl-radius-radius-round);
+}
+.details {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+}
+.name {
+    fill: var(--dl-color-gray-white);
+    color: var(--dl-color-gray-white);
+}
+.rating {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+}
+.rating .star {
+    color: #ccc;
+    font-size: 20px;
+    cursor: default;
+}
+.rating .star.filled {
+    color: #ff0000;
+}
+.text {
+    fill: var(--dl-color-gray-white);
+    color: var(--dl-color-gray-white);
+    text-align: left;
+}
+
+@media(max-width: 767px) {
+    .card {
+        width: 100%;
+    }
+}

@@ -1,0 +1,4 @@
+model,metric,n,score
+Content-Based,precision,10,0.030163934426229513
+Content-Based,recall,10,0.017810295453695626
+Content-Based,ndcg,10,0.03517748486652064

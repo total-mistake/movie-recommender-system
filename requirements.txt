@@ -129,3 +129,4 @@ wheel==0.45.1
 wrapt==1.17.2
 yarg==0.1.9
 zipp==3.21.0
+fastapi-cache2==0.2.1

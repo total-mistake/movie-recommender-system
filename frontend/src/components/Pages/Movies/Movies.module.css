@@ -1,0 +1,183 @@
+.container14 {
+    flex: 0 0 auto;
+    width: 80%;
+    height: auto;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    margin-top: -3em;
+    align-self: center;
+}
+.gallery3 {
+    width: 90%;
+    height: auto;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    align-items: center;
+    flex-shrink: 0;
+    padding-top: var(--dl-space-space-twounits);
+    flex-direction: column;
+}
+.maxWidth {
+    gap: var(--dl-space-space-threeunits);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+.sectionTitle {
+    width: 90%;
+    align-self: center;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    flex-direction: row;
+    justify-content: space-between;
+}
+.item {
+    width: auto;
+    height: var(--dl-size-size-small);
+    position: relative;
+    min-width: var(--dl-size-size-xxlarge);
+    padding-top: var(--dl-space-space-halfunit);
+    /*border-width: 0.5px;*/
+    /*border-style: solid;*/
+    /*border-color: var(--dl-color-danger-300);*/
+    padding-left: var(--dl-space-space-unit);
+    padding-right: var(--dl-space-space-unit);
+    padding-bottom: var(--dl-space-space-halfunit);
+}
+.details {
+    gap: var(--dl-space-space-oneandhalfunits);
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    justify-content: flex-start;
+}
+.text23 {
+    color: rgb(255, 255, 255);
+    width: auto;
+    font-size: 1em;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 36px;
+    text-transform: uppercase;
+}
+.text24 {
+    color: rgb(153, 153, 153);
+    font-size: 1em;
+}
+.icon20 {
+    fill: #ffffff;
+    width: 30px;
+    height: 30px;
+}
+.listOfMovies {
+    gap: var(--dl-space-space-oneandhalfunits);
+    width: 100%;
+}
+.movie {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+}
+
+.image {
+    width: 100%;
+    height: 350px;
+    max-width: 250px;
+    align-self: center;
+    object-fit: fill;
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.movie:hover .image {
+    transform: scale(1.1);
+    filter: grayscale(100%);
+    cursor: pointer;
+}
+
+.movie:hover .movieTitle {
+    opacity: 1; /* Показать текст при наведении */
+}
+
+.movieTitle {
+    position: absolute;
+    margin:50% 0;
+    color: black;
+    font-size: 1.5em;
+    font-weight: 600;
+    opacity: 0; /* Скрытый текст по умолчанию */
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+    text-align: center;
+    text-transform: uppercase;
+    text-shadow:
+            0 0 7px var(--dl-color-danger-500),
+            0 0 10px var(--dl-color-danger-500),
+            0 0 21px var(--dl-color-danger-500),
+            0 0 30px var(--dl-color-danger-500),
+            0 0 42px var(--dl-color-danger-500),
+            0 0 82px var(--dl-color-danger-500),
+            0 0 92px #fff,
+            0 0 102px #fff,
+            0 0 151px #fff;
+}
+
+@media(max-width: 991px) {
+    .item {
+        width: 100%;
+        align-items: center;
+        padding-top: var(--dl-space-space-unit);
+        flex-direction: row;
+        padding-bottom: var(--dl-space-space-unit);
+        justify-content: space-between;
+    }
+    .details {
+        align-items: flex-start;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    .text23 {
+        font-size: 16px;
+        line-height: 24px;
+    }
+    .text24 {
+        font-size: 14px;
+        line-height: 21px;
+    }
+    .icon20 {
+        width: 12px;
+        height: 12px;
+    }
+    .image {
+        flex: 0 0 auto;
+        width: 100%;
+        height: 300px;
+    }
+}
+
+@media(max-width: 767px) {
+    .sectionTitle {
+        gap: var(--dl-space-space-oneandhalfunits);
+        flex-direction: column;
+    }
+    .item {
+        align-items: center;
+    }
+    .details {
+        gap: 0;
+        width: 100%;
+        padding-right: var(--dl-space-space-twounits);
+        flex-direction: row;
+        justify-content: space-between;
+    }
+}
+
+@media(max-width: 479px) {
+
+}

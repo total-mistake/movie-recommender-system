@@ -152,8 +152,8 @@ def plot_performance_results(results: Dict):
 
 def main():
     print("Загрузка данных...")
-    movies_df = pd.read_parquet('data/raw/movies_small.parquet')
-    ratings_df = pd.read_parquet('data/raw/ratings_small.parquet')
+    movies_df = pd.read_parquet('data/raw/movies.parquet')
+    ratings_df = pd.read_parquet('data/raw/ratings.parquet')
     
     # Инициализируем модели
     models = {

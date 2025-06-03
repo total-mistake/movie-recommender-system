@@ -1,0 +1,192 @@
+.contact5 {
+    display: flex;
+    position: relative;
+    align-items: center;
+    flex-direction: column;
+    padding: 5em;
+    flex: 1;
+}
+.text1 {
+    fill: var(--dl-color-gray-white);
+    color: var(--dl-color-gray-white);
+    font-size: 1.3em;
+    font-style: normal;
+    text-align: center;
+    font-weight: 500;
+    margin-bottom: var(--dl-space-space-oneandhalfunits);
+    text-transform: uppercase;
+}
+.form {
+    gap: var(--dl-space-space-unit);
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    flex-shrink: 0;
+    flex-direction: column;
+}
+.container {
+    gap: var(--dl-space-space-threeunits);
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    flex-direction: row;
+}
+.input1 {
+    gap: 8px;
+    flex: 2;
+    display: flex;
+    align-self: stretch;
+    align-items: center;
+    flex-direction: row;
+}
+.text2 {
+    fill: var(--dl-color-gray-white);
+    color: var(--dl-color-gray-white);
+}
+.textInput {
+    fill: var(--dl-color-gray-white);
+    color: var(--dl-color-gray-white);
+    width: 100%;
+    border-color: var(--dl-color-danger-500);
+    background-color: transparent;
+}
+.input2 {
+    gap: 8px;
+    flex: 1;
+    display: flex;
+    align-self: stretch;
+    align-items: center;
+    flex-direction: row;
+}
+.text3 {
+    fill: var(--dl-color-gray-white);
+    color: var(--dl-color-gray-white);
+    text-transform: capitalize;
+}
+.select {
+    fill: var(--dl-color-gray-white);
+    color: var(--dl-color-gray-white);
+    width: 100%;
+    border-color: var(--dl-color-danger-500);
+    background-color: transparent;
+}
+
+.select option {
+    background-color: #000;
+    color: var(--dl-color-danger-500);
+    border-radius: var(--dl-radius-radius-radius8);
+    text-align: center;
+}
+
+.input3 {
+    gap: 8px;
+    display: flex;
+    align-self: stretch;
+    align-items: flex-start;
+    flex-direction: column;
+}
+.textarea {
+    fill: var(--dl-color-gray-white);
+    color: var(--dl-color-gray-white);
+    width: auto;
+    border-color: var(--dl-color-danger-300);
+    background-color: transparent;
+    min-width: 70%;
+    max-width: 800px;
+    max-height: 200px;
+}
+.button {
+    width: 100%;
+    background-color: var(--dl-color-danger-300);
+}
+.buttontext{
+    font-weight: 400;
+    font-size: 1.1em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    line-height: 1.5em;
+}
+.sendtext{
+    font-weight: 400;
+    font-size: 1.1em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    line-height: 1.5em;
+    text-align: center;
+    width: 100%;
+    color:  var(--dl-color-danger-300);
+    text-shadow:
+            0 0 7px var(--dl-color-danger-500),
+            0 0 10px var(--dl-color-danger-500),
+            0 0 41px #fff;
+}
+.text4 {
+    display: inline-block;
+}
+.rootClassName {
+    flex: 1;
+}
+@media(max-width: 991px) {
+    .contact5 {
+        padding: var(--dl-space-space-threeunits);
+    }
+    .form {
+        width: 100%;
+    }
+    .container {
+        gap: var(--dl-space-space-halfunit);
+    }
+}
+@media(max-width: 767px) {
+    .text1 {
+        text-align: center;
+    }
+    .container {
+        gap: var(--dl-space-space-halfunit);
+    }
+    .rootClassName {
+        width: 100%;
+    }
+}
+@media(max-width: 479px) {
+    .text1 {
+        font-size: 1em;
+        text-align: center;
+    }
+    .container {
+        flex-direction: column;
+    }
+    .text2 {
+        width: 50px;
+    }
+    .text3 {
+        width: 50px;
+    }
+}
+.authMessage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1em;
+    padding: 2em;
+    text-align: center;
+}
+
+.authMessage p {
+    color: var(--dl-color-gray-white);
+    font-size: 1.2em;
+    margin: 0;
+}
+
+.authMessage .button {
+    width: auto;
+    min-width: 150px;
+    background-color: var(--dl-color-danger-300);
+    transition: background-color 0.3s ease;
+}
+
+.authMessage .button:hover {
+    background-color: var(--dl-color-danger-500);
+}

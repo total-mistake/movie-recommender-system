@@ -1,0 +1,204 @@
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 200px);
+    padding: 2rem;
+}
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modalContent {
+    background-color: var(--dl-color-gray-black);
+    padding: 2.5rem;
+    border-radius: 35px;
+    position: relative;
+    width: 90%;
+    max-width: 500px;
+    border: 1px solid var(--dl-color-danger-500);
+    box-shadow: 0 0 20px rgba(220, 53, 69, 0.2);
+}
+
+.closeButton {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    color: var(--dl-color-gray-white);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    line-height: 1;
+    transition: color 0.3s ease;
+}
+
+.closeButton:hover {
+    color: var(--dl-color-danger-500);
+}
+
+.formContainer {
+    width: 100%;
+}
+
+.tabs {
+    display: flex;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--dl-color-danger-500);
+}
+
+.tab {
+    flex: 1;
+    padding: 1rem;
+    background: none;
+    border: none;
+    color: var(--dl-color-gray-white);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.tab:hover {
+    color: var(--dl-color-danger-500);
+}
+
+.activeTab {
+    color: var(--dl-color-danger-500);
+    border-bottom: 2px solid var(--dl-color-danger-500);
+}
+
+.title {
+    color: var(--dl-color-gray-white);
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.label {
+    color: var(--dl-color-gray-white);
+    font-size: 1rem;
+    text-transform: uppercase;
+}
+
+.input {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--dl-color-danger-500);
+    border-radius: 25px;
+    background-color: transparent;
+    color: var(--dl-color-gray-white);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--dl-color-danger-300);
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.2);
+}
+
+.inputError {
+    border-color: var(--dl-color-danger-700);
+}
+
+.errorText {
+    color: var(--dl-color-danger-700);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.error {
+    color: var(--dl-color-danger-500);
+    font-size: 0.875rem;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.button {
+    background-color: var(--dl-color-danger-500);
+    color: var(--dl-color-gray-white);
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.button:hover {
+    background-color: var(--dl-color-danger-600);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+}
+
+.button:disabled {
+    background-color: var(--dl-color-gray-500);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.buttonText {
+    text-transform: uppercase;
+}
+
+/* Profile styles */
+.profileInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.profileField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.profileValue {
+    color: var(--dl-color-gray-white);
+    font-size: 1.1rem;
+    padding: 0.5rem 1rem;
+    background-color: rgba(220, 53, 69, 0.1);
+    border-radius: 15px;
+    border: 1px solid var(--dl-color-danger-500);
+}
+
+.logoutButton {
+    background-color: transparent;
+    border: 1px solid var(--dl-color-danger-500);
+    color: var(--dl-color-danger-500);
+}
+
+.logoutButton:hover {
+    background-color: var(--dl-color-danger-500);
+    color: var(--dl-color-gray-white);
+} 

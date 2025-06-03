@@ -11,9 +11,10 @@ from models.content_based import ContentBasedModel
 from models.collaborative import CollaborativeModel
 from models.hybrid import HybridModel
 from test_evaluation import evaluate_model
+from database.connection import get_movies_data, get_ratings_data
 
 # Константы для оценки моделей
-N_VALUES = [10, 50, 100]  # Значения n для метрик precision@n, recall@n, ndcg@n
+N_VALUES = [10]  # Значения n для метрик precision@n, recall@n, ndcg@n
 
 def load_data():
     """
@@ -24,20 +25,20 @@ def load_data():
     print("Загрузка данных...")
     
     # Загружаем данные
-    movies_df = pd.read_parquet('data/raw/movies_small.parquet')
-    ratings_df = pd.read_parquet('data/raw/ratings_small.parquet')
-    
+    movies = pd.read_parquet('data/raw/movies_test.parquet')
+    ratings = pd.read_parquet('data/raw/ratings_test.parquet')
+
     # Сортируем рейтинги по времени для каждого пользователя
-    ratings_df = ratings_df.sort_values(['userId', 'date'])
-    
+    ratings = ratings.sort_values(['User_ID', 'Date_Rated'])
+
     # Сбрасываем индексы для корректной работы с масками
-    ratings_df = ratings_df.reset_index(drop=True)
-    
+    ratings = ratings.reset_index(drop=True)
+
     # Создаем маску для разделения на train/test
-    train_mask = np.ones(len(ratings_df), dtype=bool)
+    train_mask = np.ones(len(ratings), dtype=bool)
     
     # Для каждого пользователя берем последние 20% оценок в test
-    for user_id, group in ratings_df.groupby('userId'):
+    for user_id, group in ratings.groupby('User_ID'):
         user_indices = group.index
         n_test = int(len(user_indices) * 0.2)
         if n_test > 0:  # если у пользователя достаточно оценок
@@ -45,23 +46,23 @@ def load_data():
             train_mask[test_indices] = False
     
     # Применяем маску для разделения
-    train_ratings = ratings_df[train_mask]
-    test_ratings = ratings_df[~train_mask]
-    
+    train_ratings = ratings[train_mask]
+    test_ratings = ratings[~train_mask]
+
     print(f"Размер обучающей выборки: {len(train_ratings)}")
     print(f"Размер тестовой выборки: {len(test_ratings)}")
-    print(f"Количество пользователей в тренировочной выборке: {len(train_ratings['userId'].unique())}")
-    print(f"Количество пользователей в тестовой выборке: {len(test_ratings['userId'].unique())}")
-    print(f"Количество пользователей в исходном датасете: {len(ratings_df['userId'].unique())}")
-    
+    print(f"Количество пользователей в тренировочной выборке: {len(train_ratings['User_ID'].unique())}")
+    print(f"Количество пользователей в тестовой выборке: {len(test_ratings['User_ID'].unique())}")
+    print(f"Количество пользователей в исходном датасете: {len(ratings['User_ID'].unique())}")
+
     # Проверяем, что все пользователи есть в обеих выборках
-    train_users = set(train_ratings['userId'].unique())
-    test_users = set(test_ratings['userId'].unique())
-    all_users = set(ratings_df['userId'].unique())
+    train_users = set(train_ratings['User_ID'].unique())
+    test_users = set(test_ratings['User_ID'].unique())
+    all_users = set(ratings['User_ID'].unique())
     print(f"Все пользователи в train: {train_users == all_users}")
     print(f"Все пользователи в test: {test_users == all_users}")
     
-    return movies_df, train_ratings, test_ratings
+    return movies, train_ratings, test_ratings
 
 def train_and_evaluate_models(movies_df, train_ratings, test_ratings):
     """
@@ -70,17 +71,17 @@ def train_and_evaluate_models(movies_df, train_ratings, test_ratings):
     
     results = {}
     
-    # Сначала обучаем базовые модели
-    print("\nОценка модели: Content-Based")
-    print("-" * 50)
-    content_model = ContentBasedModel()
-    content_model.fit(movies_df, train_ratings)
-    content_results = evaluate_model(
-        model=content_model,
-        test_ratings=test_ratings,
-        n_values=N_VALUES
-    )
-    results['Content-Based'] = content_results
+    # # Сначала обучаем базовые модели
+    # print("\nОценка модели: Content-Based")
+    # print("-" * 50)
+    # content_model = ContentBasedModel(l2_reg=1.0)
+    # content_model.fit(movies_df, train_ratings)
+    # content_results = evaluate_model(
+    #     model=content_model,
+    #     test_ratings=test_ratings,
+    #     n_values=N_VALUES
+    # )
+    # results['Content-Based'] = content_results
     
     print("\nОценка модели: Collaborative")
     print("-" * 50)
@@ -93,33 +94,34 @@ def train_and_evaluate_models(movies_df, train_ratings, test_ratings):
     )
     results['Collaborative'] = collab_results
     
-    # Теперь создаем и оцениваем гибридные модели
-    hybrid_alphas = [0.2, 0.4, 0.6, 0.8]
-    for alpha in hybrid_alphas:
-        model_name = f'Hybrid-{alpha}'
-        print(f"\nОценка модели: {model_name}")
-        print("-" * 50)
+    # # Теперь создаем и оцениваем гибридные модели
+    # # hybrid_alphas = [0.2, 0.4, 0.6, 0.8]
+    # hybrid_alphas = [0.6]
+    # for alpha in hybrid_alphas:
+    #     model_name = f'Hybrid-{alpha}'
+    #     print(f"\nОценка модели: {model_name}")
+    #     print("-" * 50)
         
-        try:
-            hybrid_model = HybridModel(alpha=alpha)
-            # Гибридная модель использует уже обученные базовые модели
-            hybrid_results = evaluate_model(
-                model=hybrid_model,
-                test_ratings=test_ratings,
-                n_values=N_VALUES
-            )
-            results[model_name] = hybrid_results
+    #     try:
+    #         hybrid_model = HybridModel(alpha=alpha)
+    #         # Гибридная модель использует уже обученные базовые модели
+    #         hybrid_results = evaluate_model(
+    #             model=hybrid_model,
+    #             test_ratings=test_ratings,
+    #             n_values=N_VALUES
+    #         )
+    #         results[model_name] = hybrid_results
             
-            # Выводим результаты
-            print("\nРезультаты:")
-            for metric, scores in hybrid_results.items():
-                print(f"\n{metric.upper()}:")
-                for n, score in scores.items():
-                    print(f"@{n}: {score:.4f}")
+    #         # Выводим результаты
+    #         print("\nРезультаты:")
+    #         for metric, scores in hybrid_results.items():
+    #             print(f"\n{metric.upper()}:")
+    #             for n, score in scores.items():
+    #                 print(f"@{n}: {score:.4f}")
                     
-        except Exception as e:
-            print(f"Ошибка при оценке модели {model_name}: {str(e)}")
-            continue
+    #     except Exception as e:
+    #         print(f"Ошибка при оценке модели {model_name}: {str(e)}")
+    #         continue
     
     return results
 
@@ -139,7 +141,7 @@ def reduce_dataset_size(ratings_df, movies_df, user_fraction=0.1, random_state=4
     print(f"\nУдаляем {user_fraction*100}% пользователей из датасета...")
     
     # Получаем список всех пользователей
-    all_users = ratings_df['userId'].unique()
+    all_users = ratings_df['User_ID'].unique()
     
     # Выбираем случайную подвыборку пользователей для удаления
     np.random.seed(random_state)
@@ -150,19 +152,19 @@ def reduce_dataset_size(ratings_df, movies_df, user_fraction=0.1, random_state=4
     )
     
     # Удаляем выбранных пользователей и их рейтинги
-    ratings_df_reduced = ratings_df[~ratings_df['userId'].isin(users_to_remove)]
+    ratings_df_reduced = ratings_df[~ratings_df['User_ID'].isin(users_to_remove)]
     
     # Получаем список оставшихся фильмов
-    remaining_movies = ratings_df_reduced['movieId'].unique()
-    movies_df_reduced = movies_df[movies_df['movieId'].isin(remaining_movies)]
-    
+    remaining_movies = ratings_df_reduced['Movie_ID'].unique()
+    movies_df_reduced = movies_df[movies_df['Movie_ID'].isin(remaining_movies)]
+
     print(f"Исходный размер датасета:")
     print(f"- Количество пользователей: {len(all_users)}")
     print(f"- Количество рейтингов: {len(ratings_df)}")
     print(f"- Количество фильмов: {len(movies_df)}")
     
     print(f"\nУменьшенный размер датасета:")
-    print(f"- Количество пользователей: {len(ratings_df_reduced['userId'].unique())}")
+    print(f"- Количество пользователей: {len(ratings_df_reduced['User_ID'].unique())}")
     print(f"- Количество рейтингов: {len(ratings_df_reduced)}")
     print(f"- Количество фильмов: {len(movies_df_reduced)}")
     
@@ -172,15 +174,17 @@ def main():
     start_time = time.time()
     
     # # Загружаем данные
-    # movies_df = pd.read_parquet('data/raw/movies_test.parquet')
-    # ratings_df = pd.read_parquet('data/raw/ratings_test.parquet')
+    # movies = get_movies_data()
+    # ratings = get_ratings_data()
+
+    # movies = movies[['Movie_ID', 'Type', 'Plot', 'Year', 'Genres', 'Directors', 'Writers', 'Actors', 'Countries', 'Rating', 'Rating_Count']]
     
     # # Уменьшаем размер датасета (удаляем 90% пользователей)
-    # ratings_df, movies_df = reduce_dataset_size(ratings_df, movies_df, user_fraction=0.9)
+    # ratings, movies = reduce_dataset_size(ratings, movies, user_fraction=0.98)
 
-    # ratings_df.to_parquet('data/raw/ratings_small.parquet')
-    # movies_df.to_parquet('data/raw/movies_small.parquet')
-    
+    # ratings.to_parquet('data/raw/ratings_small_db.parquet')
+    # movies.to_parquet('data/raw/movies_small_db.parquet')
+
     # Разделяем на train/test
     movies_df, train_ratings, test_ratings = load_data()
     

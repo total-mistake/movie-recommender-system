@@ -1,0 +1,50 @@
+.aboutmoviepicture{
+    flex: 1;
+    height: 400px;
+    display: flex;
+    min-height: auto;
+    align-items: flex-start;
+    background-size: cover;
+    background-image: url('https://images.unsplash.com/photo-1668890094751-6986d0ca9dfc?ixid=M3w5MTMyMXwwfDF8c2VhcmNofDM1fHxNb3ZpZSUyMHRoZWF0ZXJ8ZW58MHx8fHwxNzMzNDI2NDc5fDA&ixlib=rb-4.0.3&w=1500');
+    background-position: center;
+    border-radius: 8px;
+}
+
+.aboutmovie{
+    flex: 0 0 auto;
+    width: 100%;
+    margin: 0;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2em;
+}
+.contactform{
+    flex: 2;
+}
+
+.movies{
+    margin-top: -2em;
+    display: flex;
+    flex-direction: column;
+    gap: 2em;
+    padding: 2em;
+}
+
+@media(max-width: 767px) {
+    .aboutmovie {
+        flex-wrap: wrap;
+        flex-direction: column;
+    }
+
+    .aboutmoviepicture {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+}
+
+@media(max-width: 479px) {
+
+
+}

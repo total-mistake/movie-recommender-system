@@ -3,7 +3,7 @@ import pickle
 from collections import defaultdict
 from .base import BaseModel
 from surprise import SVD, Dataset, Reader
-from config import COLLABORATIVE_MODEL_PATH, SVD_PARAMS, COLLABORATIVE_TEST_MODEL_PATH
+from config import COLLABORATIVE_MODEL_PATH, SVD_PARAMS
 
 class CollaborativeModel(BaseModel):
     def __init__(self, model_path=COLLABORATIVE_MODEL_PATH):
@@ -20,19 +20,19 @@ class CollaborativeModel(BaseModel):
         """
         Обучает SVD и сохраняет модель.
         """
-        reader = Reader(rating_scale=(ratings_df.rating.min(), ratings_df.rating.max()))
-        data = Dataset.load_from_df(ratings_df[['userId', 'movieId', 'rating']], reader)
+        reader = Reader(rating_scale=(ratings_df.Rating.min(), ratings_df.Rating.max()))
+        data = Dataset.load_from_df(ratings_df[['User_ID', 'Movie_ID', 'Rating']], reader)
         self.trainset = data.build_full_trainset()
 
         self.model = SVD(**SVD_PARAMS, random_state=9)
         self.model.fit(self.trainset)
 
         # Собираем все уникальные фильмы и просмотренные пользователями
-        self.all_movie_ids = ratings_df["movieId"].unique().tolist()
+        self.all_movie_ids = ratings_df["Movie_ID"].unique().tolist()
 
         self.user_rated_movies = defaultdict(set)
         for _, row in ratings_df.iterrows():
-            self.user_rated_movies[int(row.userId)].add(int(row.movieId))
+            self.user_rated_movies[int(row.User_ID)].add(int(row.Movie_ID))
 
         self._save_model()
 

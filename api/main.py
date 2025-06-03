@@ -1,28 +1,62 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes import recommendations, health, admin
+from api.routes import admin, users, movies
 from api.services.recommender import RecommenderService
 from api.dependencies import set_recommender_service
 from api.auth import get_admin_token
 import logging
+from config import (
+    API_TITLE, API_DESCRIPTION, API_VERSION,
+    API_HOST, API_PORT,
+    CORS_ORIGINS, CORS_ALLOW_CREDENTIALS,
+    CORS_ALLOW_METHODS, CORS_ALLOW_HEADERS
+)
+from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """
+    Инициализация при запуске и очистка при завершении
+    """
+    try:
+        # Инициализация in-memory кеша
+        FastAPICache.init(InMemoryBackend(), prefix="movie-cache")
+        logger.info("In-memory cache initialized")
+        
+        # Инициализация модели рекомендаций
+        logger.info("Загрузка модели рекомендаций...")
+        service = RecommenderService()
+        set_recommender_service(service)
+        app.state.is_ready = True
+        logger.info("Модель успешно загружена")
+        
+        yield
+        
+    except Exception as e:
+        logger.error(f"Ошибка при инициализации: {str(e)}")
+        raise
+
 app = FastAPI(
-    title="Movie Recommender API",
-    description="API для получения рекомендаций фильмов",
-    version="1.0.0"
+    title=API_TITLE,
+    description=API_DESCRIPTION,
+    version=API_VERSION,
+    lifespan=lifespan
 )
 
 # Настройка CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В продакшене заменить на конкретные домены
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=CORS_ALLOW_CREDENTIALS,
+    allow_methods=CORS_ALLOW_METHODS,
+    allow_headers=CORS_ALLOW_HEADERS,
 )
 
 # Инициализация состояния приложения
@@ -35,7 +69,6 @@ async def startup_event():
     """
     try:
         logger.info("Загрузка модели рекомендаций...")
-        # Инициализация сервиса рекомендаций
         service = RecommenderService()
         set_recommender_service(service)
         app.state.is_ready = True
@@ -54,12 +87,26 @@ async def check_ready_middleware(request, call_next):
     return await call_next(request)
 
 # Подключаем роуты
-app.include_router(health.router, prefix="/api", tags=["health"])
-app.include_router(recommendations.router, prefix="/api", tags=["recommendations"])
-app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(
+    admin.router,
+    prefix="/admin",
+    tags=["admin"]
+)
+
+app.include_router(
+    users.router,
+    prefix="/users",
+    tags=["users"]
+)
+
+app.include_router(
+    movies.router,
+    prefix="/movies",
+    tags=["movies"]
+)
 
 # Роут для получения токена администратора
-@app.post("/api/admin/token", tags=["admin"])
+@app.post("/admin/token", tags=["admin"])
 async def get_token():
     """
     Получение JWT токена для администратора
@@ -67,6 +114,11 @@ async def get_token():
     """
     return {"token": get_admin_token()}
 
+@app.get("/health")
+async def health_check():
+    """Проверка работоспособности API"""
+    return {"status": "healthy"}
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run(app, host=API_HOST, port=API_PORT) 

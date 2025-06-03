@@ -109,7 +109,7 @@ def evaluate_model(model: Any,
     }
     
     # Группируем рейтинги по пользователям для оптимизации
-    user_ratings = test_ratings.groupby('userId')
+    user_ratings = test_ratings.groupby('User_ID')
     total_users = len(user_ratings)
     processed_users = 0
 
@@ -128,7 +128,7 @@ def evaluate_model(model: Any,
     
     # Создаем множества релевантных фильмов для каждого пользователя
     user_relevant_movies = {
-        user_id: set(user_data['movieId'].tolist())
+        user_id: set(user_data['Movie_ID'].tolist())
         for user_id, user_data in user_ratings
     }
     

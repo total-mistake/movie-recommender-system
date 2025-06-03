@@ -1,0 +1,4 @@
+model,metric,n,score
+Collaborative,precision,10,0.014506096043791987
+Collaborative,recall,10,0.007096315264042811
+Collaborative,ndcg,10,0.015452282852869696
