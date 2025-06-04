@@ -43,15 +43,7 @@ class RecommenderService:
         
         # Добавляем пользователя
         self.model.content_model.add_new_user(user_id, genres_list)
-        
-        # Логируем профиль пользователя после добавления
-        user_profile = self.model.content_model.get_user_profile(user_id)
-        if user_profile is not None:
-            logger.debug(f"RecommenderService.add_new_user: User profile shape: {user_profile.shape}")
-            # Получаем ненулевые компоненты профиля
-            non_zero = user_profile.nonzero()
-            if len(non_zero[0]) > 0:
-                logger.debug(f"RecommenderService.add_new_user: Non-zero components in profile: {non_zero[0][:5]}")
+
 
     # Административные методы
     def add_movie(self, movie_dict: Dict[str, Any]) -> None:

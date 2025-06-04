@@ -6,6 +6,8 @@ from api.auth import create_access_token, verify_token
 from api.services.recommender import RecommenderService
 from api.dependencies import get_recommender_service, get_current_user
 from api.schemas.recommendations import RecommendationRequest, RecommendationResponse
+import time
+from datetime import timedelta
 
 router = APIRouter()
 
@@ -34,9 +36,15 @@ async def register_user(user_data: UserCreate, recommender_service: RecommenderS
     Возвращает JWT токен для аутентификации.
     """
     try:
+        start_time = time.time()
         user_id = add_user_to_db(user_data.username, user_data.password)
+        print(f"Добавление пользователя в БД: {timedelta(seconds=time.time()-start_time)}")
+        start_time = time.time()
         access_token = create_access_token(user_id)
+        print(f"Создание токена: {timedelta(seconds=time.time()-start_time)}")
+        start_time = time.time()
         recommender_service.add_new_user(user_id, user_data.favorite_genres)
+        print(f"Создание профиля: {timedelta(seconds=time.time()-start_time)}")
         return TokenResponse(
             access_token=access_token,
             user_id=user_id
