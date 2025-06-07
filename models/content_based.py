@@ -7,13 +7,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 from config import CONTENT_MODEL_PATH
 from .base import BaseModel
 from .preprocessing import build_preprocessor
-import time
-from datetime import timedelta
 
 class ContentBasedModel(BaseModel):
     def __init__(self, model_path=CONTENT_MODEL_PATH, l2_reg=0.1):
         self.model_path = model_path
-        self.l2_reg = l2_reg  # Коэффициент L2-регуляризации
+        self.l2_reg = l2_reg
         self.movie_ids = None
         self.feature_matrix = None
         self.user_profiles = {}
@@ -151,21 +149,14 @@ class ContentBasedModel(BaseModel):
             min_rating: минимальный средний рейтинг фильма (от 1 до 5)
             min_reviews: минимальное количество отзывов
         """
-        start_time = time.time()
         
         if not self.movie_ratings:
             raise ValueError("Нет информации о рейтингах фильмов. Нужно вызвать fit() с рейтингами.")
         
-        # Этап 1: Подготовка жанрового вектора пользователя
-        stage1_start = time.time()
         genres_pipeline = self.preprocessor.transformers_[1][1]
         genres_binarizer = genres_pipeline.named_steps['binarizer'].mlb
         genres_str = ', '.join(favorite_genres)
         genre_vector = genres_pipeline.transform([genres_str])
-        print(f"[Этап 1] Подготовка жанрового вектора: {timedelta(seconds=time.time()-stage1_start)}")
-        
-        # Этап 2: Предварительная фильтрация и поиск валидных фильмов
-        stage2_start = time.time()
         
         # Создаем массив рейтингов и количества оценок для всех фильмов
         ratings_array = np.zeros((len(self.movie_ids), 2))
@@ -208,13 +199,6 @@ class ContentBasedModel(BaseModel):
         # Создаем список кортежей для дальнейшей обработки
         valid_movies = list(zip(filtered_movie_ids, popularity_scores, filtered_movie_genres, filtered_movie_vectors))
         
-        print(f"[Этап 2] Поиск валидных фильмов: {timedelta(seconds=time.time()-stage2_start)}")
-        print(f"Найдено валидных фильмов: {len(valid_movies)}")
-        print(f"Отфильтровано фильмов: {len(self.movie_ids) - len(valid_movies)}")
-        
-        # Этап 3: Расчет схожести жанров (оптимизированная версия)
-        stage3_start = time.time()
-        
         # Вычисляем схожесть для всех фильмов сразу
         genre_similarities = cosine_similarity(genre_vector, filtered_movie_genres)[0]
         
@@ -225,21 +209,14 @@ class ContentBasedModel(BaseModel):
         scored_movies = list(zip(filtered_movie_ids, combined_scores, filtered_movie_vectors))
         scored_movies.sort(key=lambda x: x[1], reverse=True)
         top_movies = scored_movies[:10]
-        
-        print(f"[Этап 3] Расчет схожести и сортировка: {timedelta(seconds=time.time()-stage3_start)}")
-        
-        # Этап 4: Построение профиля пользователя
-        stage4_start = time.time()
+        print(top_movies)
+
         profile = sum(movie_vector for _, _, movie_vector in top_movies) / len(top_movies)
         profile = csr_matrix(profile)
         profile = self._l2_regularization(profile)
         
         self.user_profiles[user_id] = profile
         self.watched_movies[user_id] = []
-        print(f"[Этап 4] Построение профиля: {timedelta(seconds=time.time()-stage4_start)}")
-        
-        total_time = time.time() - start_time
-        print(f"Общее время выполнения: {timedelta(seconds=total_time)}")
 
     def predict(self, user_id, top_n=None):
         if self.feature_matrix is None or self.movie_ids is None:
@@ -267,7 +244,7 @@ class ContentBasedModel(BaseModel):
                 'watched_movies': self.watched_movies,
                 'preprocessor': self.preprocessor,
                 'l2_reg': self.l2_reg,
-                'movie_ratings': self.movie_ratings  # Добавляем сохранение рейтингов
+                'movie_ratings': self.movie_ratings
             }, f)
 
     def load_model(self):
@@ -279,7 +256,7 @@ class ContentBasedModel(BaseModel):
             self.watched_movies = data.get('watched_movies', {})
             self.preprocessor = data['preprocessor']
             self.l2_reg = data.get('l2_reg', 0.1)
-            self.movie_ratings = data.get('movie_ratings', {})  # Добавляем загрузку рейтингов
+            self.movie_ratings = data.get('movie_ratings', {}) 
 
     def get_similar_movies(self, movie_id, top_n=10):
         """

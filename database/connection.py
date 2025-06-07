@@ -123,7 +123,7 @@ def make_graphql_request(query: str, variables: Optional[Dict] = None) -> Option
         if response.status_code == 200:
             return response.json()
         else:
-            print(f"Ошибка: {response.status_code} — {response.text}")
+            print(f"Ошибка: {response.status_code} - {response.text}")
             return None
     except Exception as e:
         print(f"Ошибка при выполнении запроса: {e}")

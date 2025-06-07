@@ -4,36 +4,37 @@ import Header from "../../Header/Header";
 import Footer from "../../Footer/Footer";
 import style from './Movies.module.css'
 import Filter from "../../UI/Filter/Filter";
-import { movieService } from '../../../../services/movieService';
+import { fetchMovies, SortField } from '../../../services/movieService';
 
 const Movies = () => {
     const navigate = useNavigate();
     const [movies, setMovies] = useState([]);
-    const [filteredMovies, setFilteredMovies] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
-    const pageSize = 20;
+    const [sortBy, setSortBy] = useState(SortField.PIPULARITY);
+    const [sortOrder, setSortOrder] = useState('desc');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const handleMovieClick = (id) => {
-        console.log('Clicked movie id:', id);
         navigate(`/movie/${id}`);
     };
 
-    const fetchMovies = async (page) => {
+    const loadMovies = async (page, sortByField = sortBy, order = sortOrder) => {
         try {
             setIsLoading(true);
-            const data = await movieService.getMovies(page, pageSize);
+            const data = await fetchMovies(page, sortByField, order);
+            
             if (page === 1) {
                 setMovies(data.movies);
-                setFilteredMovies(data.movies);
             } else {
                 setMovies(prev => [...prev, ...data.movies]);
-                setFilteredMovies(prev => [...prev, ...data.movies]);
             }
+            
             setTotalPages(data.total_pages);
             setHasMore(page < data.total_pages);
+            setCurrentPage(page);
         } catch (error) {
             console.error('Error fetching movies:', error);
         } finally {
@@ -42,40 +43,38 @@ const Movies = () => {
     };
 
     useEffect(() => {
-        fetchMovies(1);
-    }, []);
+        setMovies([]);
+        setCurrentPage(1);
+        loadMovies(1, sortBy, sortOrder);
+    }, [sortBy, sortOrder]);
 
     // Обработчик прокрутки для бесконечной подгрузки
     const handleScroll = (e) => {
         const { scrollTop, clientHeight, scrollHeight } = e.target.documentElement;
         if (scrollHeight - scrollTop <= clientHeight * 1.5 && !isLoading && hasMore) {
-            setCurrentPage(prev => prev + 1);
-            fetchMovies(currentPage + 1);
+            loadMovies(currentPage + 1);
         }
     };
 
     useEffect(() => {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [isLoading, hasMore]);
+    }, [isLoading, hasMore, currentPage, sortBy, sortOrder]);
 
-    // Search for a movie by title
+    // Поиск фильмов по названию
     const handleSearch = (query) => {
+        setSearchQuery(query);
         const filtered = movies.filter(movie =>
             movie.Title.toLowerCase().includes(query.toLowerCase())
         );
-        setFilteredMovies(filtered);
+        setMovies(filtered);
     };
 
-    // Sorting movies by year
-    const handleSort = (order) => {
-        const sorted = [...filteredMovies];
-        if (order === 'newest') {
-            sorted.sort((a, b) => b.Year - a.Year);
-        } else if (order === 'oldest') {
-            sorted.sort((a, b) => a.Year - b.Year);
-        }
-        setFilteredMovies(sorted);
+    // Сортировка фильмов
+    const handleSort = (field) => {
+        const newOrder = field === sortBy && sortOrder === 'desc' ? 'asc' : 'desc';
+        setSortBy(field);
+        setSortOrder(newOrder);
     };
 
     return (
@@ -88,23 +87,35 @@ const Movies = () => {
                         <Filter
                             onSearch={handleSearch}
                             onSort={handleSort}
+                            currentSort={sortBy}
+                            sortOrder={sortOrder}
+                            sortOptions={[
+                                { value: SortField.TITLE, label: 'По названию' },
+                                { value: SortField.YEAR, label: 'По году' },
+                                { value: SortField.RATING, label: 'По рейтингу' },
+                                { value: SortField.RATING_COUNT, label: 'По количеству оценок' }
+                            ]}
                         />
                     </div>
                     <div className={`${style.listOfMovies} thq-grid-4`}>
-                        {filteredMovies.map(movie => {
-                            console.log('Rendering movie:', movie);
-                            return (
-                                <div key={movie.Movie_ID} className={style.movie}
-                                     onClick={() => handleMovieClick(movie.Movie_ID)}>
-                                    <img
-                                        alt={movie.Title}
-                                        src={movie.Poster}
-                                        className={`${style.image} thq-img-ratio-16-9`}
-                                    />
+                        {movies.map(movie => (
+                            <div key={movie.Movie_ID} 
+                                 className={style.movie}
+                                 onClick={() => handleMovieClick(movie.Movie_ID)}>
+                                <img
+                                    alt={movie.Title}
+                                    src={movie.Poster}
+                                    className={`${style.image} thq-img-ratio-16-9`}
+                                />
+                                <div className={style.movieInfo}>
                                     <div className={style.movieTitle}>{movie.Title}</div>
+                                    <div className={style.movieYear}>{movie.Year}</div>
+                                    <div className={style.movieRating}>
+                                        Рейтинг: {movie.Rating.toFixed(1)} ({movie.Rating_Count})
+                                    </div>
                                 </div>
-                            );
-                        })}
+                            </div>
+                        ))}
                     </div>
                     {isLoading && <div className={style.loading}>Загрузка...</div>}
                 </div>

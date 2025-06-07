@@ -1,6 +1,3 @@
-import os
-import pickle
-import time
 from .base import BaseModel
 from .content_based import ContentBasedModel
 from .collaborative import CollaborativeModel
@@ -39,12 +36,11 @@ class HybridModel(BaseModel):
             self.collaborative_model.load_model()
             self.content_model.load_model()
 
-    def predict(self, user_id, top_n=10):
+    def predict(self, user_id, top_n=None):
         """
         Объединяет рекомендации контентной и коллаборативной модели по весам.
         Для новых пользователей использует только контентную модель.
         """
-        start = time.time()
         try:
             # Пробуем получить рекомендации от обеих моделей
             content_recs = dict(self.content_model.predict(user_id, top_n=None))

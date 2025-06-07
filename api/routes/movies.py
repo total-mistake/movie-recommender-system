@@ -31,7 +31,7 @@ class SortField(str, Enum):
     YEAR = "year"
     RATING = "rating"
     RATING_COUNT = "rating_count"
-    POPULARITY = "popularity"  # Новое поле для сортировки по популярности
+    POPULARITY = "popularity"
 
 # Константы для расчета популярности
 C = 1000  # Минимальное количество голосов для учета
